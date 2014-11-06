@@ -20,4 +20,4 @@ Have a bug or a feature request? If your problem or idea is not addressed yet, [
 
 Contribute away. Let's see them PRs.
 
-Code released under the MIT license.
+Code released under [the MIT license](LICENSE).
