@@ -19,15 +19,24 @@ def loginToPronto(username, password, debug):
 	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
 	urllib2.install_opener(opener)
 
+	puts(colored.white("Contacting ProntoNetworks..."))
+	with indent(5, quote=">"):
+		puts(colored.yellow("Fetching site"))
 	
 	mainReq = urllib2.Request(BASE_URL+'/registration/Main.jsp?wispId=1&nasId=00:15:17:c8:09:b1')
 	mainRes = urllib2.urlopen(mainReq)
-
+	with indent(5, quote=">"):
+		puts(colored.yellow("Sending credentials"))
 	loginReq = urllib2.Request(BASE_URL+'/registration/chooseAuth.do',params)
 	loginRes = urllib2.urlopen(loginReq)
 
+	with indent(5, quote=">"):
+		puts(colored.yellow("Accessing history"))
 	historyReq = urllib2.Request(BASE_URL+'/registration/main.do?content_key=%2FCustomerSessionHistory.jsp')
 	historyRes = urllib2.urlopen(historyReq)
+
+	with indent(5, quote=">"):
+		puts(colored.yellow("Parsing data"))
 
 	soup = BeautifulSoup(historyRes.read())
 
@@ -48,8 +57,9 @@ def loginToPronto(username, password, debug):
 
 
 if __name__ == '__main__':
-
-
+	print "-"*40
+	puts(colored.white(" "*15+"ProntoUsage"))
+	print "-"*40
 	debug= False
 	args = Args().grouped
 	if '--delete' in args.keys():
