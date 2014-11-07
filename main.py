@@ -1,11 +1,12 @@
 from clint.arguments import Args 
 from clint.textui import prompt, puts, colored, indent
-
+from datetime import datetime
 import urllib2, cookielib, urllib, os, json
 
 from BeautifulSoup import BeautifulSoup
 
 BASE_URL="http://115.248.50.60"
+
 
 def loginToPronto(username, password, debug):
 
@@ -18,34 +19,95 @@ def loginToPronto(username, password, debug):
 
 	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
 	urllib2.install_opener(opener)
-
 	puts(colored.white("Contacting ProntoNetworks..."))
+
+	if debug:
+		if not os.path.exists('debug/'):
+			os.makedirs('debug/')
+
 	with indent(5, quote=">"):
 		puts(colored.yellow("Fetching site"))
-	
 	mainReq = urllib2.Request(BASE_URL+'/registration/Main.jsp?wispId=1&nasId=00:15:17:c8:09:b1')
 	mainRes = urllib2.urlopen(mainReq)
+
+	if debug:
+		with open('debug/main.txt', 'wb') as f:
+			f.write(mainRes.read())
+			f.close()
+			with indent(5, quote=colored.white("DEBUG:")):
+				puts(colored.red("logged /registration/Main.jsp response"))
+
 	with indent(5, quote=">"):
 		puts(colored.yellow("Sending credentials"))
 	loginReq = urllib2.Request(BASE_URL+'/registration/chooseAuth.do',params)
 	loginRes = urllib2.urlopen(loginReq)
+
+	if debug:
+		with open('debug/login.txt', 'wb') as f:
+			f.write(loginRes.read())
+			f.close()
+			with indent(5, quote=colored.white("DEBUG:")):
+				puts(colored.red("logged /registration/chooseAuth.do response"))
+
+
+	with indent(5, quote=">"):
+		puts(colored.yellow("Checking plan"))
+	planReq = urllib2.Request(BASE_URL+'/registration/main.do?content_key=%2FSelectedPlan.jsp')
+	planRes = urllib2.urlopen(planReq)
+
+	planSoup = BeautifulSoup(planRes.read())
+	data=planSoup.findAll('td', attrs={
+		'class': 'formFieldRight',
+		'colspan': '2'
+		})
+	planDetails=[]
+	for i in range(0,len(data)-1):
+		kids = data[i].parent.findAll('td')
+		planDetails.append(str(kids[1].text))
+
+	if debug:
+		with open('debug/plan.txt', 'wb') as f:
+			f.write(loginRes.read())
+			f.close()
+			with indent(5, quote=colored.white("DEBUG:")):
+				puts(colored.red("logged /registration/main.do?content_key=%2FSelectedPlan.jsp response"))
 
 	with indent(5, quote=">"):
 		puts(colored.yellow("Accessing history"))
 	historyReq = urllib2.Request(BASE_URL+'/registration/main.do?content_key=%2FCustomerSessionHistory.jsp')
 	historyRes = urllib2.urlopen(historyReq)
 
+	html= historyRes.read()
+	if debug:
+		with open('debug/history.txt', 'wb') as f:
+			f.write(html)
+			f.close()
+			with indent(5, quote=colored.white("DEBUG:")):
+				puts(colored.red("logged /registration/main.do?content_key=%2FCustomerSessionHistory.jsp response"))
+
+
 	with indent(5, quote=">"):
 		puts(colored.yellow("Parsing data"))
-
-	soup = BeautifulSoup(historyRes.read())
-
-	table = soup.find('td', attrs={
+	historySoup = BeautifulSoup(html)
+	table = historySoup.find('td', attrs={
 		"colspan": "3",
 		"class": "subTextRight"
 		}).parent
-
 	tds=table.findAll('td')
+
+
+	startDate=datetime.strptime(planDetails[2], "%m/%d/%Y %H:%M:%S")
+	endDate=datetime.strptime(planDetails[3], "%m/%d/%Y %H:%M:%S")
+	today=datetime.now()
+
+	print "-"*40
+	puts(colored.cyan(" "*14+"Plan Details"))
+	print "-"*40
+	puts(colored.magenta("Data Limit: ")+ planDetails[0])
+	puts(colored.magenta("Start Date: ")+ planDetails[2])
+	puts(colored.magenta("End Date: ")+ planDetails[3])
+	print "-"*40
+
 	print "-"*40
 	puts(colored.cyan(" "*17+"Usage"))
 	print "-"*40
@@ -62,6 +124,8 @@ if __name__ == '__main__':
 	print "-"*40
 	debug= False
 	args = Args().grouped
+	if '--debug' in args.keys():
+		debug=True
 	if '--delete' in args.keys():
 		try:
 		    os.remove('cred.json')
