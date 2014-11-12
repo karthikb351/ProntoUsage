@@ -1,11 +1,23 @@
 from clint.arguments import Args 
 from clint.textui import prompt, puts, colored, indent
 from datetime import datetime
+
+import dateutil.relativedelta
 import urllib2, cookielib, urllib, os, json
 
 from BeautifulSoup import BeautifulSoup
 
 BASE_URL="http://115.248.50.60"
+
+def getCycleStartDate(planstart):
+	today = datetime.now()
+	month_ago = today - dateutil.relativedelta.relativedelta(months=1)
+	return {
+		"dd":planstart.day,
+		"mm":month_ago.month-1,
+		"yy":month_ago.year
+	}
+
 
 
 def loginToPronto(username, password, debug):
@@ -72,9 +84,26 @@ def loginToPronto(username, password, debug):
 			with indent(5, quote=colored.white("DEBUG:")):
 				puts(colored.red("logged /registration/main.do?content_key=%2FSelectedPlan.jsp response"))
 
+	startDate=datetime.strptime(planDetails[2], "%m/%d/%Y %H:%M:%S")
+	endDate=datetime.strptime(planDetails[3], "%m/%d/%Y %H:%M:%S")
+
+	cycleStart=getCycleStartDate(startDate)
+
+	historyParams=urllib.urlencode({
+		"location":"allLocations",
+		"parameter":"custom",
+		"customStartMonth":cycleStart['mm'],
+		"customStartDay":cycleStart['dd'],
+		"customStartYear":cycleStart['yy'],
+		"customEndMonth":04,
+		"customEndDay":01,
+		"customEndYear":2016,# Lazy, so hardcoding end year.
+		"button":"View"
+	})
+
 	with indent(5, quote=">"):
 		puts(colored.yellow("Accessing history"))
-	historyReq = urllib2.Request(BASE_URL+'/registration/main.do?content_key=%2FCustomerSessionHistory.jsp')
+	historyReq = urllib2.Request(BASE_URL+'/registration/customerSessionHistory.do', historyParams)
 	historyRes = urllib2.urlopen(historyReq)
 
 	html= historyRes.read()
@@ -83,7 +112,7 @@ def loginToPronto(username, password, debug):
 			f.write(html)
 			f.close()
 			with indent(5, quote=colored.white("DEBUG:")):
-				puts(colored.red("logged /registration/main.do?content_key=%2FCustomerSessionHistory.jsp response"))
+				puts(colored.red("logged /registration/customerSessionHistory.do response"))
 
 
 	with indent(5, quote=">"):
@@ -96,9 +125,7 @@ def loginToPronto(username, password, debug):
 	tds=table.findAll('td')
 
 
-	startDate=datetime.strptime(planDetails[2], "%m/%d/%Y %H:%M:%S")
-	endDate=datetime.strptime(planDetails[3], "%m/%d/%Y %H:%M:%S")
-	today=datetime.now()
+	
 
 	print "-"*40
 	puts(colored.cyan(" "*14+"Plan Details"))
