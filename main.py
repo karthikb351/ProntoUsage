@@ -12,11 +12,18 @@ BASE_URL="http://115.248.50.60"
 def getCycleStartDate(planstart):
 	today = datetime.now()
 	month_ago = today - dateutil.relativedelta.relativedelta(months=1)
-	return {
-		"dd":planstart.day,
-		"mm":month_ago.month-1,
-		"yy":month_ago.year
-	}
+	if(planstart.day>today.day):
+		return {
+			"dd":planstart.day,
+			"mm":month_ago.month-1,
+			"yy":month_ago.year
+		}
+	else:
+		return {
+			"dd":planstart.day,
+			"mm":today.month-1,
+			"yy":today.year
+		}
 
 
 
